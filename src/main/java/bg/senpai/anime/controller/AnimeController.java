@@ -1,9 +1,7 @@
 package bg.senpai.anime.controller;
 
 import bg.senpai.anime.service.AnimeService;
-import bg.senpai.common.dtos.AnimeM3U8LinkDto;
-import bg.senpai.common.dtos.VideoCreationRequestDto;
-import bg.senpai.common.dtos.VideoCreationResponseDto;
+import bg.senpai.common.dtos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -25,10 +23,15 @@ public class AnimeController {
         return animeService.getM3U8Link(animeUrl);
     }
 
-    @PostMapping
+    @PostMapping("/video")
     public VideoCreationResponseDto createVideo(@RequestBody VideoCreationRequestDto videoCreationRequestDto){
         return animeService.createVideo(videoCreationRequestDto);
    }
 
+
+   @PostMapping("/subtitles")
+    public SubtitlesDownloadedResponseDto subtitlesDownloadedResponseDto(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto){
+        return animeService.downloadSubtitles(subtitlesDownloadRequestDto);
+   }
 }
 

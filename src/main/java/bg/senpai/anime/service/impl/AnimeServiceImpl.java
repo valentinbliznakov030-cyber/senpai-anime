@@ -29,4 +29,11 @@ public class AnimeServiceImpl implements AnimeService {
         System.out.println(videoCreationRequestDto.getVidName());
         return nodeClient.createVideo(videoCreationRequestDto);
     }
+
+    @Override
+    public SubtitlesDownloadedResponseDto downloadSubtitles(SubtitlesDownloadRequestDto subtitlesDownloadRequestDto) {
+        System.out.println(subtitlesDownloadRequestDto.getAnimeTitle());
+        System.out.println(subtitlesDownloadRequestDto.getSubtitleName());
+        return nodeClient.downloadSubtitles(subtitlesDownloadRequestDto);
+    }
 }

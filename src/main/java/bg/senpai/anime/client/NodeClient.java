@@ -1,9 +1,7 @@
 package bg.senpai.anime.client;
 
 import bg.senpai.anime.config.FeignConfig;
-import bg.senpai.common.dtos.AnimeM3U8LinkDto;
-import bg.senpai.common.dtos.VideoCreationRequestDto;
-import bg.senpai.common.dtos.VideoCreationResponseDto;
+import bg.senpai.common.dtos.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +23,8 @@ public interface NodeClient {
     @PostMapping(value = "/video", produces = "application/json")
     VideoCreationResponseDto createVideo(@RequestBody VideoCreationRequestDto videoCreationRequestDto);
 
+    @PostMapping(value = "/subtitles", produces = "application/json")
+    SubtitlesDownloadedResponseDto downloadSubtitles(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto);
 
 }
 
