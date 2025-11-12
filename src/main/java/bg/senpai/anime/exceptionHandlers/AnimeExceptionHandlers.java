@@ -1,5 +1,7 @@
 package bg.senpai.anime.exceptionHandlers;
 
+import bg.senpai.anime.exception.M3U8LinkNotFoundException;
+import bg.senpai.anime.exception.SubtitlesNotFoundException;
 import bg.senpai.common.dtos.AnimeM3U8LinkDto;
 import feign.FeignException;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,26 @@ public class AnimeExceptionHandlers {
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, Object>> handleFeignException(FeignException ex){
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                        "success", false,
+                        "statusCode", 500,
+                        "message", ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(M3U8LinkNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleFeignException(M3U8LinkNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                        "success", false,
+                        "statusCode", 500,
+                        "message", ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(SubtitlesNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSubtitlesNotFoundException(SubtitlesNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of(
                         "success", false,
                         "statusCode", 500,

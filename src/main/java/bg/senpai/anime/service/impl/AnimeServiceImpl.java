@@ -2,6 +2,8 @@ package bg.senpai.anime.service.impl;
 
 import bg.senpai.anime.client.NodeClient;
 import bg.senpai.anime.service.AnimeService;
+import bg.senpai.anime.utils.M3U8Fetcher;
+import bg.senpai.anime.utils.VideoConverter;
 import bg.senpai.common.dtos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -16,18 +18,22 @@ import java.nio.charset.StandardCharsets;
 public class AnimeServiceImpl implements AnimeService {
 
     private final NodeClient nodeClient;
+    private final M3U8Fetcher m3u8Fetcher;
+    private final VideoConverter videoConverter;
 
     @Override
-    public AnimeM3U8LinkDto getM3U8Link(String animeUrl){
-        System.out.println(animeUrl);
-        return nodeClient.m3u8Extracting(animeUrl);
+    public String getM3U8Link(String animeUrl) {
+        System.out.println("🎥 Getting m3u8 for: " + animeUrl);
+
+        return m3u8Fetcher.fetchM3U8Link(animeUrl);
     }
 
     @Override
-    public VideoCreationResponseDto createVideo(VideoCreationRequestDto videoCreationRequestDto) {
-        System.out.println(videoCreationRequestDto.getM3u8Link());
-        System.out.println(videoCreationRequestDto.getVidName());
-        return nodeClient.createVideo(videoCreationRequestDto);
+    public boolean createVideo(VideoCreationRequestDto dto) {
+        System.out.println(dto.getM3u8Link());
+        System.out.println(dto.getVidName());
+
+       return videoConverter.convertVideoFromM3U8Link(dto.getM3u8Link(), dto.getVidName());
     }
 
     @Override
