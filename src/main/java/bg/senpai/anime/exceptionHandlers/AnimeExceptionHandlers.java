@@ -2,6 +2,7 @@ package bg.senpai.anime.exceptionHandlers;
 
 import bg.senpai.anime.exception.M3U8LinkNotFoundException;
 import bg.senpai.anime.exception.SubtitlesNotFoundException;
+import bg.senpai.anime.exception.VideoNotCreatedException;
 import bg.senpai.common.dtos.AnimeM3U8LinkDto;
 import feign.FeignException;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 
 @RestControllerAdvice
@@ -62,6 +64,27 @@ public class AnimeExceptionHandlers {
                         "success", false,
                         "statusCode", 500,
                         "message", ex.getMessage()
+                ));
+    }
+
+
+    @ExceptionHandler(TimeoutException.class)
+    public ResponseEntity<Map<String, Object>> handleTimeoutException(TimeoutException te){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "success", false,
+                        "statusCode", 404,
+                        "message", te.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(VideoNotCreatedException.class)
+    public ResponseEntity<Map<String, Object>> handleVideoNotCreatedException(VideoNotCreatedException e){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "success", false,
+                        "statusCode", 500,
+                        "message", "interrupted or server error"
                 ));
     }
 }

@@ -1,72 +1,106 @@
 package bg.senpai.anime.utils;
 
+import bg.senpai.anime.exception.VideoNotCreatedException;
+import bg.senpai.anime.service.SessionProcessManager;
+import bg.senpai.anime.tasks.SessionTask;
 import com.microsoft.playwright.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
+@RequiredArgsConstructor
 public class M3U8Fetcher {
+    private final SessionProcessManager sessionProcessManager;
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public String fetchM3U8Link(String episodeUrl) {
-        System.out.println("🎬 Fetching .m3u8 link for: " + episodeUrl);
+    public String fetchM3U8Link(String episodeUrl, String sessionId) {
+        System.out.println("🎥 Getting m3u8 link for: " + episodeUrl);
 
-        AtomicReference<String> m3u8Ref = new AtomicReference<>(null);
+        SessionTask sessionTask = sessionProcessManager.getSession(sessionId);
 
-        try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(false)
-                    .setArgs(java.util.List.of("--no-sandbox", "--disable-setuid-sandbox"))
-            );
+        // Node executable (ако node е в PATH → просто "node")
+        String nodePath = "node";
 
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                            + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-            );
+        // JS скрипта в root-а на проекта
+        String scriptPath = "m3u8fetcher.js";
 
-            Page page = context.newPage();
+        ProcessBuilder pb = new ProcessBuilder(
+                nodePath,
+                scriptPath,
+                episodeUrl
+        );
 
-            // 🧠 антибот защита
-            page.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
-            page.addInitScript("window.open = () => null;");
+        pb.redirectErrorStream(true);
 
-            // 🎯 слушаме всички HTTP отговори
-            page.onResponse(response -> {
-                String url = response.url();
-                if (url.endsWith(".m3u8")) {
-                    System.out.println("✅ Found .m3u8: " + url);
-                    m3u8Ref.set(url);
-                }
+        try {
+            // Старт на Puppeteer процеса
+            Process process = pb.start(); // <-- Може да хвърли IOException
+            sessionTask.addProcess(process);
+
+            // Future слуша stdout на процеса (Callable)
+            Future<String> future = executor.submit(() -> {
+                // Тъй като е Callable, IOException може да се разпространява.
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()))) {
+
+                    String line;
+                    String result = null;
+
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("[PUPPETEER] " + line);
+
+                        if (line.startsWith("RESULT:")) {
+                            result = line.substring("RESULT:".length());
+                        }
+                    }
+
+                    // 1. Проверка дали скриптът е намерил линк
+                    if (result == null) {
+                        // Хвърляме RuntimeException (ExecutionException ще го увие)
+                        throw new RuntimeException("M3U8 link not found in process output.");
+                    }
+
+                    return result;
+
+                } // ❗ IOException от BufferedReader ще се разпространи до future.get()
             });
 
-            // Навигация
-            page.navigate(episodeUrl, new Page.NavigateOptions().setTimeout(30000));
+            sessionTask.addFuture(future);
 
-            // Клик на бутона за зареждане
-            try {
-                page.waitForSelector(".click-to-load", new Page.WaitForSelectorOptions().setTimeout(15000));
-                page.click(".click-to-load");
-                System.out.println("🖱️ Clicked .click-to-load");
-            } catch (Exception e) {
-                System.out.println("⚠️ Няма бутон '.click-to-load' или вече е зареден.");
-            }
+            return future.get(3, TimeUnit.MINUTES);
 
-            long start = System.currentTimeMillis();
-            while (m3u8Ref.get() == null && System.currentTimeMillis() - start < 40000) {
-                page.waitForTimeout(500);
-            }
+        } catch (ExecutionException e) {
+            // 2. Хваща вътрешни грешки (напр. RuntimeException от result == null)
+            Throwable cause = e.getCause();
+            System.err.println("❌ Execution failed while fetching m3u8: " + (cause != null ? cause.getMessage() : "Unknown error"));
 
-            browser.close();
+            throw new VideoNotCreatedException(
+                    "Failed to execute M3U8 fetcher process.",
+                    cause
+            );
 
-        } catch (Exception e) {
-            System.out.println("❌ Error while fetching m3u8 link: " + e.getMessage());
+        } catch (TimeoutException te) {
+            // 3. Хваща таймаут
+            System.out.println("❌ Timeout while fetching m3u8. Killing session.");
+            sessionProcessManager.killSession(sessionId);
+
+            throw new VideoNotCreatedException("M3U8 fetch timeout.", te);
+
+        } catch (InterruptedException e) {
+            // 4. Хваща, ако нишката, която вика get(), е прекъсната
+            Thread.currentThread().interrupt();
+            throw new VideoNotCreatedException("M3U8 fetch interrupted.", e);
+
+        } catch (IOException e) {
+            // 5. Хваща грешки при стартиране на процеса (pb.start())
+            System.err.println("💥 Error starting Puppeteer process: " + e.getMessage());
+            throw new VideoNotCreatedException("Error starting M3U8 fetcher process.", e);
         }
-
-        String m3u8Link = m3u8Ref.get();
-        if (m3u8Link == null) {
-            System.out.println("❌ No .m3u8 link detected!");
-        }
-
-        return m3u8Link;
     }
 }

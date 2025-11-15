@@ -1,16 +1,20 @@
 package bg.senpai.anime.controller;
 
+import bg.senpai.anime.service.SessionProcessManager;
 import bg.senpai.anime.service.SubtitleService;
 import bg.senpai.common.dtos.SubtitlesDownloadRequestDto;
 import bg.senpai.common.dtos.SubtitlesDownloadedResponseDto;
 import bg.senpai.common.dtos.TranslateSubtitleRequestDto;
 import bg.senpai.common.dtos.TranslateSubtitleResponseDto;
+import jakarta.websocket.Session;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/v1/subtitles")
@@ -19,20 +23,25 @@ public class SubtitleController {
     private final SubtitleService subtitleService;
 
     @PostMapping
-    public SubtitlesDownloadedResponseDto subtitlesDownloadedResponseDto(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto){
-        return subtitleService.downloadSubtitles(subtitlesDownloadRequestDto);
+    public ResponseEntity<SubtitlesDownloadedResponseDto> subtitlesDownloadedResponseDto(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto) throws ExecutionException, InterruptedException {
+        subtitleService.downloadSubtitles(subtitlesDownloadRequestDto, subtitlesDownloadRequestDto.getSubtitleName());
+
+        return ResponseEntity.status(200).body(SubtitlesDownloadedResponseDto
+                .builder()
+                .success(true)
+                .message("Subtitles download")
+                .statusCode(200)
+                .build());
     }
 
-    @PostMapping
+    @PostMapping("/translation")
     public ResponseEntity<TranslateSubtitleResponseDto> translateSubtitles(@RequestBody TranslateSubtitleRequestDto translateSubtitleRequestDto){
-        String translatedSubtitleName = subtitleService.translateSubtitle(translateSubtitleRequestDto);
+        String translatedSubtitleName = subtitleService.translateSubtitle(translateSubtitleRequestDto, translateSubtitleRequestDto.getSubtitleName());
 
         TranslateSubtitleResponseDto response = TranslateSubtitleResponseDto.builder()
-                .success(translatedSubtitleName != null)
-                .statusCode(translatedSubtitleName != null ? "200" : "500")
-                .message(translatedSubtitleName != null ?
-                        "✅ Subtitle translated successfully!" :
-                        "❌ Failed to translate subtitle.")
+                .success(true)
+                .statusCode("200")
+                .message("✅ Subtitle translated successfully!")
                 .subtitleName(translatedSubtitleName)
                 .build();
 

@@ -4,8 +4,11 @@ import bg.senpai.common.dtos.SubtitlesDownloadRequestDto;
 import bg.senpai.common.dtos.SubtitlesDownloadedResponseDto;
 import bg.senpai.common.dtos.TranslateSubtitleRequestDto;
 
-public interface SubtitleService {
-    SubtitlesDownloadedResponseDto downloadSubtitles(SubtitlesDownloadRequestDto subtitlesDownloadRequestDto);
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
-    String translateSubtitle(TranslateSubtitleRequestDto translateSubtitleRequestDto);
+public interface SubtitleService {
+    void downloadSubtitles(SubtitlesDownloadRequestDto subtitlesDownloadRequestDto, String sessionId) throws ExecutionException, InterruptedException;
+
+    String translateSubtitle(TranslateSubtitleRequestDto translateSubtitleRequestDto, String sessionId);
 }
