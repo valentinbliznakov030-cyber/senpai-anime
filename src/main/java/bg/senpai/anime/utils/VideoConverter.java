@@ -1,10 +1,11 @@
 package bg.senpai.anime.utils;
 
-import bg.senpai.anime.exception.SubtitlesNotFoundException;
 import bg.senpai.anime.exception.VideoNotCreatedException;
 import bg.senpai.anime.service.SessionProcessManager;
 import bg.senpai.anime.tasks.SessionTask;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -23,11 +24,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @RequiredArgsConstructor
 public class VideoConverter {
+    private static final Logger logger = LoggerFactory.getLogger(VideoConverter.class);
     private final SessionProcessManager sessionProcessManager;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public void convertVideoFromM3U8Link(String m3u8Link, String sessionId) {
-        System.out.println("Starting video conversion for: " + sessionId);
+        logger.info("Starting video conversion for: {}", sessionId);
 
         SessionTask sessionTask = sessionProcessManager.getSession(sessionId);
 
@@ -48,7 +50,7 @@ public class VideoConverter {
                     "--del-after-done"
             );
 
-            System.out.println("▶Executing: " + String.join(" ", command));
+            logger.debug("Executing: {}", String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
@@ -65,7 +67,7 @@ public class VideoConverter {
 
                         String line;
                         while ((line = reader.readLine()) != null) {
-                            System.out.println("[VIDEO] " + line);
+                            logger.debug("[VIDEO] {}", line);
                         }
                     }
                 } catch (IOException e) {
@@ -75,7 +77,6 @@ public class VideoConverter {
                         exitCode.set(process.waitFor());
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        // Хвърляме RuntimeException, за да уведомим future.get() за неуспех
                         throw new RuntimeException("Process wait interrupted", e);
                     }
                 }
@@ -86,24 +87,23 @@ public class VideoConverter {
             future.get();
 
             if (exitCode.get() == 0 && Files.exists(outputPath)) {
-                System.out.println("Video downloaded at: " + outputPath);
+                logger.info("Video downloaded at: {}", outputPath);
             } else {
-                System.out.println("Process failed with exit code: " + exitCode.get());
+                logger.error("Process failed with exit code: {}", exitCode.get());
             }
 
-        }catch(ExecutionException e){
+        } catch (ExecutionException e){
             Throwable cause = e.getCause();
 
             throw new VideoNotCreatedException(
                     "Video creation failed: " + (cause != null ? cause.getMessage() : "Unknown error"),
                     cause
             );
-        }catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new VideoNotCreatedException("Video creation was interrupted");
-        }catch (Exception e) {
-            System.out.println("Error during video conversion: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error during video conversion: {}", e.getMessage(), e);
         }
-
     }
 }

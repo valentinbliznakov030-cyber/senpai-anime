@@ -25,7 +25,6 @@ public class SessionTask {
     }
 
     public void cancel() {
-        // Убиване на всички външни процеси (N_m3u8DL, Puppeteer, др.)
         for (Process p : processes) {
             try {
                 if (p != null && p.isAlive()) {
@@ -34,7 +33,6 @@ public class SessionTask {
             } catch (Exception ignored) {}
         }
 
-        // Спиране на всички нишки, слушащи процеси или преводи
         for (Future<?> f : futures) {
             try {
                 if (f != null && !f.isDone()) {

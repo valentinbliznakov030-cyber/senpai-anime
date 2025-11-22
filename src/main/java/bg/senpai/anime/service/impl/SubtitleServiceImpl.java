@@ -12,6 +12,8 @@ import bg.senpai.common.dtos.TranslateSubtitleRequestDto;
 import bg.senpai.common.dtos.TranslationResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -34,10 +36,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-
 @Service
 @RequiredArgsConstructor
 public class SubtitleServiceImpl implements SubtitleService{
+    private static final Logger logger = LoggerFactory.getLogger(SubtitleServiceImpl.class);
     private final StreamApiClient streamApiClient;
     private final WebClient webClient = WebClient.create("http://localhost:5000");
     private final ObjectMapper objectMapper;
@@ -62,7 +64,6 @@ public class SubtitleServiceImpl implements SubtitleService{
 
                 String subLink = dto.getSubtitleUrl();
 
-                // 5) DOWNLOAD
                 Path subPath = subsDir.resolve(subtitleName + ".vtt");
 
                 URL url = new URL(subLink);
@@ -83,10 +84,9 @@ public class SubtitleServiceImpl implements SubtitleService{
 
                     while ((len = in.read(buffer)) != -1) {
 
-                        // ❗ ПЕРФЕКТНОТО МЯСТО ЗА ПРЕКЪСВАНЕ
                         if (Thread.currentThread().isInterrupted()) {
-                            System.out.println("🛑 Interrupt: closing subtitle stream...");
-                            in.close();        // прекъсва read()
+                            logger.warn("Interrupt: closing subtitle stream...");
+                            in.close();
                             connection.disconnect();
                             throw new InterruptedException("Download interrupted");
                         }
@@ -109,41 +109,33 @@ public class SubtitleServiceImpl implements SubtitleService{
         future.get();
     }
 
-
     @Override
     public String translateSubtitle(TranslateSubtitleRequestDto request, String sessionId) {
 
         SessionTask sessionTask = sessionProcessManager.getSession(sessionId);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
-        // submit worker thread
         Future<String> future = executor.submit(() -> {
-            // ❗ Няма try-catch тук! Оставяме грешките да се разпространят.
-            // InterruptedException, IOException, RuntimeException - всички ще бъдат
-            // увити в ExecutionException от future.get()
-
             String subtitleName = request.getSubtitleName();
-            System.out.println("From method trnaslteSubtitle:" + subtitleName);
+            logger.debug("From method translateSubtitle: {}", subtitleName);
 
             Path inputPath = Paths.get("subtitles", subtitleName + ".vtt");
             if(Files.exists(inputPath)){
-                System.out.println("yes, it exists: " + inputPath.toString());//subtitles\4df43495-15fe-4c5e-ae8b-55afc781e17e_20251119_155218.vtt
+                logger.debug("Subtitle file exists: {}", inputPath);
             }
             String outputName = subtitleName + "-bg.vtt";
             Path outputPath = Paths.get("subtitles", outputName);
-            System.out.println(outputPath.toString());
+            logger.debug("Output path: {}", outputPath);
 
             List<String> lines = Files.readAllLines(inputPath);
             List<String> translatedLines = new ArrayList<>();
 
             for (String line : lines) {
 
-                // ❗ Прекъсване точно в лупа
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("Translation interrupted in loop");
                 }
 
-                // Пропуск на тайминги / номера / празни редове
                 if (line.trim().isEmpty()
                         || line.matches("^[0-9]+$")
                         || line.matches("^\\d{2}:\\d{2}:\\d{2}[.,]?\\d{2,3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2}[.,]?\\d{2,3}$")) {
@@ -152,20 +144,17 @@ public class SubtitleServiceImpl implements SubtitleService{
                     continue;
                 }
 
-                // Превод
                 String safeLine = line.replaceAll("(\\d{2}:\\d{2}:\\d{2})[ ,](\\d{2,3})", "$1.$2");
-                String translatedText = translateLine(safeLine); // вътре също има interrupt check
+                String translatedText = translateLine(safeLine);
 
-                // ❗ Проверяваме interrupt след всяка заявка!
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("Translation interrupted after request");
                 }
 
                 translatedLines.add(translatedText);
-                System.out.println(translatedText);
+                logger.debug("Translated text: {}", translatedText);
             }
 
-            // Добавя WEBVTT header ако липсва
             if (!translatedLines.get(0).startsWith("WEBVTT")) {
                 translatedLines.add(0, "WEBVTT");
                 translatedLines.add(1, "");
@@ -174,34 +163,27 @@ public class SubtitleServiceImpl implements SubtitleService{
             Files.write(outputPath, translatedLines, StandardCharsets.UTF_8);
 
             return outputName;
-        }); // ❗ Край на submit без catch блокове
+        });
 
-        // регистрираме във SessionTask, за да го kill-ваме
         sessionTask.addFuture(future);
 
         try {
             return future.get();
         } catch (ExecutionException e) {
-            // 1. Хваща всички грешки, хвърлени вътре (IOException, RuntimeException, InterruptedException)
             Throwable cause = e.getCause();
 
-            // Трансформираме грешката в нашето специфично изключение
-            // (Може да създадете и SubtitlesTranslationException, ако искате по-голяма прецизност)
             throw new SubtitlesNotFoundException(
                     "Translation failed: " + (cause != null ? cause.getMessage() : "Unknown error"),
                     cause
             );
         } catch (InterruptedException e) {
-            // 2. Хваща, ако нишката, която вика get(), е прекъсната
             Thread.currentThread().interrupt();
             throw new SubtitlesTranslationException("The translation process was interrupted.", e);
         }
     }
 
-
     private String translateLine(String text) throws InterruptedException {
 
-        // ❗ Прекъсване ПРЕДИ да започнем
         if (Thread.currentThread().isInterrupted()) {
             throw new InterruptedException("Interrupted before translation");
         }
@@ -220,9 +202,8 @@ public class SubtitleServiceImpl implements SubtitleService{
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(TranslationResponse.class)
-                    .block(); // ❗ Potentially blocking
+                    .block();
 
-            // ❗ Прекъсване СЛЕД block()
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("Interrupted after translation");
             }
@@ -241,9 +222,8 @@ public class SubtitleServiceImpl implements SubtitleService{
                 throw new InterruptedException("Interrupted during translation");
             }
 
-            System.out.println("⚠️ Translation error: " + e.getMessage());
+            logger.error("Translation error: {}", e.getMessage(), e);
             return text;
         }
     }
-
 }

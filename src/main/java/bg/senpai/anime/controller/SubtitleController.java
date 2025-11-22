@@ -42,7 +42,7 @@ public class SubtitleController {
         TranslateSubtitleResponseDto response = TranslateSubtitleResponseDto.builder()
                 .success(true)
                 .statusCode("200")
-                .message("✅ Subtitle translated successfully!")
+                .message("Subtitle translated successfully!")
                 .subtitleName(translatedSubtitleName)
                 .build();
 

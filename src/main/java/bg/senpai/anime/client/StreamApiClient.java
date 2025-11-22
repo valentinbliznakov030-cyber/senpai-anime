@@ -9,16 +9,13 @@ import java.util.Map;
 
 @FeignClient(name = "streamApiClient", url = "http://localhost:3030/api/v1")
 public interface StreamApiClient {
-    // 1. Търсене на аниме по заглавие
     @GetMapping("/search")
     Map<String, Object> searchAnime(@RequestParam("keyword") String animeTitle,
                                     @RequestParam("page") int page);
 
-    // 2. Взимаме епизоди по animeId
     @GetMapping("/episodes/{animeId}")
     Map<String, Object> getEpisodes(@PathVariable("animeId") String animeId);
 
-    // 3. Взимаме линкове за субтитри
     @GetMapping("/stream")
     Map<String, Object> getStreamData(@RequestParam("id") String episodeId,
                                       @RequestParam("type") String type,

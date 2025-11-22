@@ -5,7 +5,8 @@ import bg.senpai.anime.service.StreamingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.apache.catalina.connector.ClientAbortException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -18,7 +19,8 @@ import java.nio.file.Paths;
 @Service
 @RequiredArgsConstructor
 public class StreamingServiceImpl implements StreamingService {
-    private static final int CHUNK_SIZE = 1024 * 1024 * 10; // 10 MB chunk
+    private static final Logger logger = LoggerFactory.getLogger(StreamingServiceImpl.class);
+    private static final int CHUNK_SIZE = 1024 * 1024 * 10;
     private final SessionProcessManager sessionProcessManager;
 
     @Override
@@ -48,9 +50,6 @@ public class StreamingServiceImpl implements StreamingService {
             long start = 0;
             long end = fileSize - 1;
 
-            // -----------------------------
-            // RANGE PARSING
-            // -----------------------------
             if (range != null && range.startsWith("bytes=")) {
                 String[] parts = range.substring(6).split("-");
 
@@ -65,15 +64,11 @@ public class StreamingServiceImpl implements StreamingService {
 
             long contentLength = end - start + 1;
 
-            // -----------------------------
-            // RESPONSE HEADERS
-            // -----------------------------
             response.setStatus(range != null ? HttpServletResponse.SC_PARTIAL_CONTENT : HttpServletResponse.SC_OK);
             response.setHeader("Accept-Ranges", "bytes");
             response.setHeader("Content-Type", "video/mp4");
             response.setHeader("Content-Length", String.valueOf(contentLength));
             response.setHeader("Content-Range", String.format("bytes %d-%d/%d", start, end, fileSize));
-
 
             try (
                     RandomAccessFile raf = new RandomAccessFile(videoPath.toFile(), "r");
@@ -94,7 +89,7 @@ public class StreamingServiceImpl implements StreamingService {
                         out.write(buffer, 0, bytesRead);
                         out.flush();
                     } catch (IOException clientDisconnect) {
-                        System.out.println("⚠️ Client disconnected from stream → Killing session: " + vidName);
+                        logger.warn("Client disconnected from stream -> Killing session: {}", vidName);
                         return;
                     }
 
@@ -103,13 +98,11 @@ public class StreamingServiceImpl implements StreamingService {
             }
 
         } catch (Exception e) {
-            System.out.println("❌ StreamVideo Exception: " + e.getMessage());
+            logger.error("StreamVideo Exception: {}", e.getMessage(), e);
             try {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 response.getWriter().write("Error streaming video.");
             } catch (IOException ignored) {}
         }
     }
-
-
 }

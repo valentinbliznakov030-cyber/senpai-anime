@@ -9,6 +9,5 @@ public class VideoNotCreatedException extends RuntimeException {
     }
 
     public VideoNotCreatedException(){
-
     }
 }

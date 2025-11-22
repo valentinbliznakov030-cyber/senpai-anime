@@ -25,6 +25,4 @@ public interface NodeClient {
 
     @PostMapping(value = "/subtitles", produces = "application/json")
     SubtitlesDownloadedResponseDto downloadSubtitles(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto);
-
 }
-

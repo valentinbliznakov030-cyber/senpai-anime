@@ -26,9 +26,9 @@ public class FeignConfig {
     @Bean
     public Request.Options requestOptions() {
         return new Request.Options(
-                Duration.ofMinutes(15),   // колко да чака за свързване
-                Duration.ofMinutes(30),  // колко да чака за четене (изтегляне)
-                true                     // следвай redirect-и
+                Duration.ofMinutes(15),
+                Duration.ofMinutes(30),
+                true
         );
     }
 }

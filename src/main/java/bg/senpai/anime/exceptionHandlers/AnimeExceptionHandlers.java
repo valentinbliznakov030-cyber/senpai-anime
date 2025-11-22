@@ -15,7 +15,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-
 @RestControllerAdvice
 public class AnimeExceptionHandlers {
 
@@ -37,7 +36,6 @@ public class AnimeExceptionHandlers {
                         "m3u8Link", ""
                 ));
     }
-
 
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, Object>> handleFeignException(FeignException ex){
@@ -69,7 +67,6 @@ public class AnimeExceptionHandlers {
                 ));
     }
 
-
     @ExceptionHandler(TimeoutException.class)
     public ResponseEntity<Map<String, Object>> handleTimeoutException(TimeoutException te){
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -92,7 +89,6 @@ public class AnimeExceptionHandlers {
 
     @ExceptionHandler(WebClientRequestException.class)
     public ResponseEntity<?> handleWebClientConnection(WebClientRequestException ex) {
-
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
@@ -104,7 +100,6 @@ public class AnimeExceptionHandlers {
 
     @ExceptionHandler(WebClientResponseException.class)
     public ResponseEntity<?> handleWebClientResponse(WebClientResponseException ex) {
-
         return ResponseEntity
                 .status(ex.getStatusCode())
                 .body(Map.of(

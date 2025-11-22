@@ -1,9 +1,10 @@
 package bg.senpai.anime.service;
 
 import bg.senpai.anime.tasks.SessionTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import java.util.concurrent.Future;
 
 @Service
 public class SessionProcessManager {
+    private static final Logger logger = LoggerFactory.getLogger(SessionProcessManager.class);
     private final Map<String, SessionTask> activeSessions = new ConcurrentHashMap<>();
 
     public String createOrGetSession(String sessionId) {
@@ -34,7 +36,6 @@ public class SessionProcessManager {
         }
     }
 
-
     public void registerFuture(String sessionId, Future<?> future) {
         SessionTask task = activeSessions.get(sessionId);
         if (task != null) {
@@ -46,39 +47,38 @@ public class SessionProcessManager {
         SessionTask task = activeSessions.get(sessionId);
 
         if (task != null) {
-            task.cancel();      // убива процеси + futures
-            cleanup(sessionId); // трие файловете
+            task.cancel();
+            cleanup(sessionId);
             activeSessions.remove(sessionId);
         }
     }
 
     public void cleanup(String sessionId) {
         Path downloadedSub = Paths.get(System.getProperty("user.dir"), "subtitles", sessionId + ".vtt");
-        System.out.println(downloadedSub.toString());
+        logger.debug("Cleaning up subtitle file: {}", downloadedSub);
         Path translatedSub = Paths.get(System.getProperty("user.dir"), "subtitles", sessionId + "-bg.vtt");
-        System.out.println(translatedSub.toString());
+        logger.debug("Cleaning up translated subtitle file: {}", translatedSub);
         Path downloadedVideo = Paths.get(System.getProperty("user.dir"), "videos", sessionId + ".mp4");
-        System.out.println(downloadedVideo.toString());
+        logger.debug("Cleaning up video file: {}", downloadedVideo);
 
         try {
             boolean deletedDownloadedSub = Files.deleteIfExists(downloadedSub);
             if (deletedDownloadedSub) {
-                System.out.println("Изтрит: " + downloadedSub.getFileName());
+                logger.info("Deleted: {}", downloadedSub.getFileName());
             }
 
             boolean deletedTranslatedSub = Files.deleteIfExists(translatedSub);
             if (deletedTranslatedSub) {
-                System.out.println("Изтрит: " + translatedSub.getFileName());
+                logger.info("Deleted: {}", translatedSub.getFileName());
             }
 
             boolean deletedDownloadedVideo = Files.deleteIfExists(downloadedVideo);
             if (deletedDownloadedVideo) {
-                System.out.println("Изтрит: " + downloadedVideo.getFileName());
+                logger.info("Deleted: {}", downloadedVideo.getFileName());
             }
 
         } catch (IOException e) {
-            System.err.println("❌ Критична грешка при изтриване на файл: " + e.getMessage());
+            logger.error("Critical error deleting file: {}", e.getMessage(), e);
         }
     }
-
 }
