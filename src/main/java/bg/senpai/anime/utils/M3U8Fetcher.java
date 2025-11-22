@@ -68,7 +68,7 @@ public class M3U8Fetcher {
 
                     return result;
 
-                } // ❗ IOException от BufferedReader ще се разпространи до future.get()
+                }
             });
 
             sessionTask.addFuture(future);

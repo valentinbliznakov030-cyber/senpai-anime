@@ -31,6 +31,7 @@ public class SubtitleController {
                 .success(true)
                 .message("Subtitles download")
                 .statusCode(200)
+                .subtitleName(subtitlesDownloadRequestDto.getSubtitleName())
                 .build());
     }
 

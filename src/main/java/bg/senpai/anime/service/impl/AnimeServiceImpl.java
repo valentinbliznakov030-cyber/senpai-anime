@@ -1,6 +1,7 @@
 package bg.senpai.anime.service.impl;
 
 import bg.senpai.anime.client.NodeClient;
+import bg.senpai.anime.exception.M3U8LinkNotFoundException;
 import bg.senpai.anime.exception.VideoNotCreatedException;
 import bg.senpai.anime.service.AnimeService;
 import bg.senpai.anime.service.SessionProcessManager;
@@ -35,7 +36,7 @@ public class AnimeServiceImpl implements AnimeService {
         String m3U8Link = m3u8Fetcher.fetchM3U8Link(animeUrl, sessionId);
 
         if(m3U8Link == null){
-            throw new RuntimeException("M3u8Link not found");
+            throw new M3U8LinkNotFoundException("M3u8Link not found");
         }
 
         return m3U8Link;
@@ -43,7 +44,6 @@ public class AnimeServiceImpl implements AnimeService {
 
     @Override
     public void createVideo(VideoCreationRequestDto dto, String sessionId) {
-
         System.out.println(dto.getM3u8Link());
         System.out.println(dto.getVidName());
         videoConverter.convertVideoFromM3U8Link(dto.getM3u8Link(), dto.getVidName());

@@ -27,7 +27,7 @@ public class VideoConverter {
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public void convertVideoFromM3U8Link(String m3u8Link, String sessionId) {
-        System.out.println("🎬 Starting video conversion for: " + sessionId);
+        System.out.println("Starting video conversion for: " + sessionId);
 
         SessionTask sessionTask = sessionProcessManager.getSession(sessionId);
 
@@ -48,7 +48,7 @@ public class VideoConverter {
                     "--del-after-done"
             );
 
-            System.out.println("▶️ Executing: " + String.join(" ", command));
+            System.out.println("▶Executing: " + String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
@@ -58,10 +58,8 @@ public class VideoConverter {
 
             AtomicInteger exitCode = new AtomicInteger(-1);
 
-            // LISTENING THREAD
             Future<?> future = executor.submit(() -> {
                 try {
-                    // Четене на потока
                     try (BufferedReader reader = new BufferedReader(
                             new InputStreamReader(process.getInputStream()))) {
 
@@ -71,11 +69,8 @@ public class VideoConverter {
                         }
                     }
                 } catch (IOException e) {
-                    // Ако четенето на потока се провали, хвърляме Unchecked Exception,
-                    // което future.get() ще улови като ExecutionException.
                     throw new RuntimeException("Error reading process output stream", e);
                 } finally {
-                    // Изчакваме процеса (това трябва да се случи във всички случаи)
                     try {
                         exitCode.set(process.waitFor());
                     } catch (InterruptedException e) {
@@ -91,9 +86,9 @@ public class VideoConverter {
             future.get();
 
             if (exitCode.get() == 0 && Files.exists(outputPath)) {
-                System.out.println("✅ Video downloaded at: " + outputPath);
+                System.out.println("Video downloaded at: " + outputPath);
             } else {
-                System.out.println("❌ Process failed with exit code: " + exitCode.get());
+                System.out.println("Process failed with exit code: " + exitCode.get());
             }
 
         }catch(ExecutionException e){
@@ -107,7 +102,7 @@ public class VideoConverter {
             Thread.currentThread().interrupt();
             throw new VideoNotCreatedException("Video creation was interrupted");
         }catch (Exception e) {
-            System.out.println("💥 Error during video conversion: " + e.getMessage());
+            System.out.println("Error during video conversion: " + e.getMessage());
         }
 
     }

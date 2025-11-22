@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -85,6 +87,30 @@ public class AnimeExceptionHandlers {
                         "success", false,
                         "statusCode", 500,
                         "message", "interrupted or server error"
+                ));
+    }
+
+    @ExceptionHandler(WebClientRequestException.class)
+    public ResponseEntity<?> handleWebClientConnection(WebClientRequestException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "STREAMING_SERVICE_DOWN",
+                        "message", "External translation service is unavailable",
+                        "details", ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(WebClientResponseException.class)
+    public ResponseEntity<?> handleWebClientResponse(WebClientResponseException ex) {
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(Map.of(
+                        "error", "EXTERNAL_API_ERROR",
+                        "message", ex.getStatusText(),
+                        "details", ex.getResponseBodyAsString()
                 ));
     }
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientException;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,56 +54,13 @@ public class SubtitleServiceImpl implements SubtitleService{
             HttpURLConnection connection = null;
 
             try {
-                String animeTitle = dto.getAnimeTitle();
                 String subtitleName = dto.getSubtitleName();
-                int episodeNumber = dto.getEpisodeNumber();
 
                 Path subsDir = Paths.get(System.getProperty("user.dir"), "subtitles");
-                Files.createDirectories(subsDir);
-
-                // Прекъсване преди тежки операции
-                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-
-                // 1) Търсене на аниме
-                Map<String, Object> animeResponse = streamApiClient.searchAnime(animeTitle, 1);
 
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
 
-                Map<String, Object> data = (Map<String, Object>) animeResponse.get("data");
-                List<Map<String, Object>> results = (List<Map<String, Object>>) data.get("response");
-
-                if (results == null || results.isEmpty())
-                    // RuntimeException ще бъде хванато от Future.get() като ExecutionException
-                    throw new RuntimeException("Anime not found");
-
-                // 2) Fuzzy match
-                Map<String, Object> bestMatch = FuzzyMatcher.findBestMatch(results, animeTitle);
-                String animeId = bestMatch.get("id").toString();
-
-                // 3) Епизоди
-                Map<String, Object> episodesData = streamApiClient.getEpisodes(animeId);
-
-                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-
-                List<Map<String, Object>> episodes = (List<Map<String, Object>>) episodesData.get("data");
-
-                Map<String, Object> selectedEpisode = episodes.get(episodeNumber - 1);
-                String episodeId = selectedEpisode.get("id").toString();
-
-                // 4) Stream data
-                Map<String, Object> streamData = streamApiClient.getStreamData(episodeId, "sub", "hd-2");
-
-                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-
-                List<Map<String, Object>> tracks =
-                        (List<Map<String, Object>>) ((Map<String, Object>) streamData.get("data")).get("tracks");
-
-                Map<String, Object> englishSub =
-                        tracks.stream().filter(t -> "English".equals(t.get("label")))
-                                .findFirst()
-                                .orElseThrow(() -> new RuntimeException("English subtitles not found"));
-
-                String subLink = englishSub.get("file").toString();
+                String subLink = dto.getSubtitleUrl();
 
                 // 5) DOWNLOAD
                 Path subPath = subsDir.resolve(subtitleName + ".vtt");
@@ -114,11 +72,9 @@ public class SubtitleServiceImpl implements SubtitleService{
                 connection.setRequestProperty("Origin", "https://hianime.to");
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-                // Прекъсване точно преди transferTo
                 if (Thread.currentThread().isInterrupted())
                     throw new InterruptedException("Interrupted before download");
 
-                // IOException, хвърлен тук, също ще бъде предаден
                 try (InputStream in = connection.getInputStream();
                      FileOutputStream out = new FileOutputStream(subPath.toFile())) {
 
@@ -167,9 +123,15 @@ public class SubtitleServiceImpl implements SubtitleService{
             // увити в ExecutionException от future.get()
 
             String subtitleName = request.getSubtitleName();
+            System.out.println("From method trnaslteSubtitle:" + subtitleName);
+
             Path inputPath = Paths.get("subtitles", subtitleName + ".vtt");
-            String outputName = subtitleName.replace(".vtt", "-bg.vtt");
+            if(Files.exists(inputPath)){
+                System.out.println("yes, it exists: " + inputPath.toString());//subtitles\4df43495-15fe-4c5e-ae8b-55afc781e17e_20251119_155218.vtt
+            }
+            String outputName = subtitleName + "-bg.vtt";
             Path outputPath = Paths.get("subtitles", outputName);
+            System.out.println(outputPath.toString());
 
             List<String> lines = Files.readAllLines(inputPath);
             List<String> translatedLines = new ArrayList<>();
@@ -200,6 +162,7 @@ public class SubtitleServiceImpl implements SubtitleService{
                 }
 
                 translatedLines.add(translatedText);
+                System.out.println(translatedText);
             }
 
             // Добавя WEBVTT header ако липсва
@@ -270,7 +233,9 @@ public class SubtitleServiceImpl implements SubtitleService{
 
             return text;
 
-        } catch (Exception e) {
+        }catch (WebClientException e) {
+            throw e;
+        }catch (Exception e) {
 
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("Interrupted during translation");
