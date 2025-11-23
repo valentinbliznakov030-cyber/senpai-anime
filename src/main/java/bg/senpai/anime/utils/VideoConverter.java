@@ -37,7 +37,9 @@ public class VideoConverter {
             Path videosDir = Paths.get(System.getProperty("user.dir"), "videos");
             Files.createDirectories(videosDir);
 
-            String exePath = "N_m3u8DL-RE.exe";
+            // Use Linux version in Docker, Windows version locally
+            String os = System.getProperty("os.name").toLowerCase();
+            String exePath = os.contains("win") ? "N_m3u8DL-RE.exe" : "N_m3u8DL-RE";
             Path outputPath = videosDir.resolve(sessionId + ".mp4");
 
             List<String> command = List.of(

@@ -1,0 +1,26 @@
+{
+  "name": "senpai-anime",
+  "version": "1.0.0",
+  "description": "",
+  "main": "m3u8fetcher.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/valentinbliznakov030-cyber/senpai-anime.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/valentinbliznakov030-cyber/senpai-anime/issues"
+  },
+  "homepage": "https://github.com/valentinbliznakov030-cyber/senpai-anime#readme",
+  "dependencies": {
+    "puppeteer": "^24.30.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
