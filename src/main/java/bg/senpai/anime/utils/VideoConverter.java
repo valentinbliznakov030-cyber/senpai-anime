@@ -37,7 +37,6 @@ public class VideoConverter {
             Path videosDir = Paths.get(System.getProperty("user.dir"), "videos");
             Files.createDirectories(videosDir);
 
-            // Use Linux version in Docker, Windows version locally
             String os = System.getProperty("os.name").toLowerCase();
             String exePath = os.contains("win") ? "N_m3u8DL-RE.exe" : "N_m3u8DL-RE";
             Path outputPath = videosDir.resolve(sessionId + ".mp4");
@@ -107,5 +106,6 @@ public class VideoConverter {
         } catch (Exception e) {
             logger.error("Error during video conversion: {}", e.getMessage(), e);
         }
+
     }
 }
