@@ -1,18 +1,13 @@
 package bg.senpai.anime.controller;
 
-import bg.senpai.anime.service.SessionProcessManager;
 import bg.senpai.anime.service.SubtitleService;
-import bg.senpai.common.dtos.SubtitlesDownloadRequestDto;
+import bg.senpai.common.dtos.SubtitlesDownloadRequestDTO;
 import bg.senpai.common.dtos.SubtitlesDownloadedResponseDto;
 import bg.senpai.common.dtos.TranslateSubtitleRequestDto;
 import bg.senpai.common.dtos.TranslateSubtitleResponseDto;
-import jakarta.websocket.Session;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.ExecutionException;
 
@@ -22,16 +17,17 @@ import java.util.concurrent.ExecutionException;
 public class SubtitleController {
     private final SubtitleService subtitleService;
 
-    @PostMapping
-    public ResponseEntity<SubtitlesDownloadedResponseDto> subtitlesDownloadedResponseDto(@RequestBody SubtitlesDownloadRequestDto subtitlesDownloadRequestDto) throws ExecutionException, InterruptedException {
-        subtitleService.downloadSubtitles(subtitlesDownloadRequestDto, subtitlesDownloadRequestDto.getSubtitleName());
+    @PostMapping("/{sessionId}")
+    public ResponseEntity<SubtitlesDownloadedResponseDto> subtitlesDownloadedResponseDto(@RequestBody SubtitlesDownloadRequestDTO dto,
+                                                                                         @PathVariable String sessionId) throws ExecutionException, InterruptedException {
+        subtitleService.downloadSubtitles(dto, sessionId);
 
         return ResponseEntity.status(200).body(SubtitlesDownloadedResponseDto
                 .builder()
                 .success(true)
                 .message("Subtitles download")
                 .statusCode(200)
-                .subtitleName(subtitlesDownloadRequestDto.getSubtitleName())
+                .subtitleName(sessionId)
                 .build());
     }
 

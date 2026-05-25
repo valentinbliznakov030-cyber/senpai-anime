@@ -1,6 +1,6 @@
 package bg.senpai.anime.service.impl;
 
-import bg.senpai.anime.dto.EpisodeCreationRequestDTO;
+import bg.senpai.anime.dto.EpisodeCreateOrGetRequestDTO;
 import bg.senpai.anime.entity.Anime;
 import bg.senpai.anime.entity.Episode;
 import bg.senpai.anime.exception.M3U8LinkNotFoundException;
@@ -37,11 +37,10 @@ public class EpisodeServiceImpl implements EpisodeService {
                 .orElseThrow(() -> new EntityNotFoundException("Episode not found"));
     }
 
-
-    public Episode createEpisode(EpisodeCreationRequestDTO episodeCreationRequestDto, String sessionId) {
-        String episodeUrl = episodeCreationRequestDto.getEpisodeUrl();
-        Integer episodeNumber = episodeCreationRequestDto.getEpisodeNumber();
-        Anime anime = animeService.findById(episodeCreationRequestDto.getAnimeId());
+    public Episode createEpisode(EpisodeCreateOrGetRequestDTO episodeCreateOrGetRequestDto, String sessionId) {
+        String episodeUrl = episodeCreateOrGetRequestDto.getEpisodeUrl();
+        Integer episodeNumber = episodeCreateOrGetRequestDto.getEpisodeNumber();
+        Anime anime = animeService.findById(episodeCreateOrGetRequestDto.getAnimeId());
 
         String m3u8Link = getM3U8Link(episodeUrl, sessionId);
 
@@ -54,11 +53,10 @@ public class EpisodeServiceImpl implements EpisodeService {
         return episodeRepository.save(episode);
     }
 
-    @Override
-    public String getM3U8Link(String animeUrl, String sessionId) {
-        logger.info("Getting m3u8 for: {}", animeUrl);
+    private String getM3U8Link(String episodeUrl, String sessionId) {
+        logger.info("Getting m3u8 for: {}", episodeUrl);
 
-        String m3U8Link = m3u8Fetcher.fetchM3U8Link(animeUrl, sessionId);
+        String m3U8Link = m3u8Fetcher.fetchM3U8Link(episodeUrl, sessionId);
 
         if(m3U8Link == null){
             throw new M3U8LinkNotFoundException("M3u8Link not found");
@@ -70,12 +68,14 @@ public class EpisodeServiceImpl implements EpisodeService {
     @Override
     public void convertVideo(VideoCreationRequestDto dto, String sessionId) {
         logger.debug("M3U8 link: {}", dto.getM3u8Link());
-        logger.debug("Video name: {}", dto.getVidName());
-        videoConverter.convertVideoFromM3U8Link(dto.getM3u8Link(), dto.getVidName());
+        logger.debug("Video name: {}", sessionId);
+
+        videoConverter.convertVideoFromM3U8Link(dto.getM3u8Link(), sessionId);
 
         Path videoPath = Paths.get(System.getProperty("user.dir"), "videos", sessionId + ".mp4");
         logger.debug("Video path: {}", videoPath);
         logger.debug("Video exists: {}", Files.exists(videoPath));
+
         if(!Files.exists(videoPath)){
             throw new VideoNotCreatedException();
         }
@@ -83,7 +83,7 @@ public class EpisodeServiceImpl implements EpisodeService {
     }
 
     @Override
-    public Episode getEpisode(EpisodeCreationRequestDTO dto, String sessionId) {
-        return episodeRepository.findById(dto.getAnimeId()).orElseGet(() -> createEpisode(dto, sessionId));
+    public Episode getEpisode(EpisodeCreateOrGetRequestDTO dto, String sessionId) {
+        return episodeRepository.findByAnime_Id(dto.getAnimeId()).orElseGet(() -> createEpisode(dto, sessionId));
     }
 }

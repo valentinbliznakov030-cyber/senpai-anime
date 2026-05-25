@@ -27,7 +27,6 @@ public class StreamingServiceImpl implements StreamingService {
     @Override
     public void streamVideo(String vidName, HttpServletRequest request, HttpServletResponse response) {
 
-        // Missing video name
         if (vidName == null || vidName.isBlank()) {
             try {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -38,7 +37,6 @@ public class StreamingServiceImpl implements StreamingService {
 
         Path videoPath = Paths.get(System.getProperty("user.dir"), "videos", vidName + ".mp4");
 
-        // Video does not exist
         if (!Files.exists(videoPath)) {
             try {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -67,7 +65,6 @@ public class StreamingServiceImpl implements StreamingService {
 
             long contentLength = end - start + 1;
 
-            // Set headers
             response.setStatus(range != null ? HttpServletResponse.SC_PARTIAL_CONTENT : HttpServletResponse.SC_OK);
             response.setHeader("Accept-Ranges", "bytes");
             response.setHeader("Content-Type", "video/mp4");
@@ -93,7 +90,6 @@ public class StreamingServiceImpl implements StreamingService {
                         out.write(buffer, 0, bytesRead);
                         out.flush();
                     } catch (IOException disconnect) {
-                        // User closed video -> No errors, no stacktrace
                         logger.info("Client disconnected early from stream: {}", vidName);
                         return;
                     }
@@ -104,7 +100,6 @@ public class StreamingServiceImpl implements StreamingService {
             }
 
         } catch (Exception ex) {
-            // DO NOT print stacktrace – SoftUni hates that
             logger.warn("Stream aborted for {}: {}", vidName, ex.getMessage());
         }
     }

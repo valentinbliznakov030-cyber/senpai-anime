@@ -9,8 +9,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class EpisodeCreationRequestDTO {
-    private String episodeUrl;
-    private int episodeNumber;
-    private UUID animeId;
+public class AnimeGetResponseDTO {
+    private UUID id;
+    private String animeTitle;
+    private String hiAnimeId;
 }

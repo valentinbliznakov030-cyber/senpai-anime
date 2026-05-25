@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface AnimeRepository extends JpaRepository<Anime, UUID> {
     Optional<Anime> findByTitle(String animeName);
     Optional<Anime> findByHiAnimeId(String hiAnimeId);
+    boolean existsByHiAnimeId(String hiAnimeId);
 }

@@ -1,15 +1,16 @@
 package bg.senpai.anime.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @Builder
-public class CreatedOrExistingAnimeResponseDTO {
-    private UUID animeId;
+public class AnimeCreateRequestDTO {
+    @NotBlank
     private String animeTitle;
+    @NotBlank
+    private String hiAnimeId;
 }

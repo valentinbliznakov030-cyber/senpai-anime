@@ -25,7 +25,7 @@ async function run() {
         const page = await browser.newPage();
 
         await page.setExtraHTTPHeaders({
-            'Referer': 'https://animepahe.si/',
+            'Referer': 'https://animepahe.ch/',
             'User-Agent': 'Mozilla/5.0'
         });
 
