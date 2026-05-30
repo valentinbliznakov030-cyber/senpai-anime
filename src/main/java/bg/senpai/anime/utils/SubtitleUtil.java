@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,26 +38,31 @@ public class SubtitleUtil {
 
         Future<Path> future = executor.submit(() -> {
 
-            HttpURLConnection connection = null;
+            URLConnection connection = null;
 
             String subtitleName = sessionId;
             Path subsDir = Paths.get(System.getProperty("user.dir"), "subtitles");
 
-            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException();
+            }
 
             String subLink = dto.getSubtitleUrl();
             Path subPath = subsDir.resolve(subtitleName + ".vtt");
 
             try {
                 URL url = new URL(subLink);
-                connection = (HttpURLConnection) url.openConnection();
+                connection = url.openConnection();
 
-                connection.setRequestProperty("Referer", "https://hianime.to");
-                connection.setRequestProperty("Origin", "https://hianime.to");
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+                if (connection instanceof HttpURLConnection httpConnection) {
+                    httpConnection.setRequestProperty("Referer", "https://hianime.to");
+                    httpConnection.setRequestProperty("Origin", "https://hianime.to");
+                    httpConnection.setRequestProperty("User-Agent", "Mozilla/5.0");
+                }
 
-                if (Thread.currentThread().isInterrupted())
+                if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("Interrupted before download");
+                }
 
                 try (InputStream in = connection.getInputStream();
                      FileOutputStream out = new FileOutputStream(subPath.toFile())) {
@@ -65,23 +71,31 @@ public class SubtitleUtil {
                     int len;
 
                     while ((len = in.read(buffer)) != -1) {
+
                         if (Thread.currentThread().isInterrupted()) {
                             logger.warn("Interrupt: closing subtitle stream...");
-                            in.close();
-                            connection.disconnect();
+
+                            if (connection instanceof HttpURLConnection httpConnection) {
+                                httpConnection.disconnect();
+                            }
+
                             throw new InterruptedException("Download interrupted");
                         }
 
                         out.write(buffer, 0, len);
                     }
                 }
+
             } catch (IOException e) {
                 throw new RuntimeException("IO Error during processing or download.", e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Task interrupted.", e);
             } finally {
-                if (connection != null) connection.disconnect();
+
+                if (connection instanceof HttpURLConnection httpConnection) {
+                    httpConnection.disconnect();
+                }
             }
 
             return subPath;
