@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '17'
 
       - name: "Get my repo"
         uses: actions/checkout@v4
@@ -23,6 +23,10 @@ jobs:
         with:
           repository: valentinbliznakov030-cyber/senpai-common
           path: "common/senpai-common"
+
+      - name: "Install senpai-common to local .m2"
+        working-directory: "common/senpai-common"
+        run: mvn clean install -DskipTests
 
       - name: "Build and test"
         run: mvn clean package
