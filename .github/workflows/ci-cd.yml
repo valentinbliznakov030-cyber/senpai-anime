@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: "Install Java"
         uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
 
       - name: "Get my repo"
         uses: actions/checkout@v4
