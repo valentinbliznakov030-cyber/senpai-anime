@@ -1,0 +1,25 @@
+name: CI pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Install Java"
+        uses: actions/setup-java@v4
+
+      - name: "Get my repo"
+        uses: actions/checkout@v4
+
+      - name: "Get common repo"
+        uses: actions/checkout@v4
+        with:
+          repository: valentinbliznakov030-cyber/senpai-common
+          path: "common/senpai-common"
+
+      - name: "Build and test"
+        run: mvn clean package
